@@ -1,53 +1,73 @@
-import os, pathlib, pytest
-from core.config import Config
-from core.logger import init_logger
-from core.ai.self_heal import SelfHealer
+import pytest
 from playwright.sync_api import sync_playwright
+import os
+from executables.api.api_client import APIClient
+from executables.db.db_client import DBClient
+from util.html_report import HtmlReport
+
+def pytest_addoption(parser):
+    parser.addoption('--base-url', action='store', default='https://example.com', help='base url')
+    parser.addoption('--headed', action='store_true', help='run headed')
 
 @pytest.fixture(scope='session')
-def cfg():
-    return Config('config/config.yaml')
+def base_url(request):
+    return request.config.getoption('--base-url')
 
 @pytest.fixture(scope='session')
-def artifacts(tmp_path_factory):
-    d = pathlib.Path('.artifacts')
-    d.mkdir(exist_ok=True, parents=True)
-    return d
-
-@pytest.fixture(scope='session', autouse=True)
-def _log(artifacts):
-    init_logger(artifacts)
+def api_client(base_url):
+    return APIClient(base_url + "/api")
 
 @pytest.fixture(scope='session')
-def base_url(cfg):
-    return cfg.base_url
+def db_client():
+    db = DBClient(os.path.join(os.getcwd(), 'data', 'test.db'))
+    yield db
+    db.close()
 
-@pytest.fixture(scope='session')
-def browser_name(cfg):
-    return cfg.get('browser')
-
-@pytest.fixture(scope='session')
-def _browser_context_args(cfg, artifacts):
-    args = {}
-    if cfg.get('video') == 'on':
-        args['record_video_dir'] = str(artifacts / 'video')
-    return args
-
-@pytest.fixture(scope='session')
-def playwright_context(cfg, browser_name, _browser_context_args):
+@pytest.fixture(scope='function')
+def page(request, base_url):
+    headed = request.config.getoption('--headed')
     with sync_playwright() as p:
-        browser = getattr(p, browser_name).launch(headless=cfg.get('headless'), slow_mo=cfg.get('slowmo_ms'))
-        context = browser.new_context(**_browser_context_args)
-        yield context
+        browser = p.chromium.launch(headless=not headed)
+        context = browser.new_context()
+        page = context.new_page()
+        yield page
         context.close()
         browser.close()
 
-@pytest.fixture
-def page(playwright_context):
-    page = playwright_context.new_page()
-    yield page
-    page.close()
+# ---------------- HTML Reporting ----------------
+REPORT_PATH = os.environ.get('HTML_REPORT_PATH', 'artifacts/test-report.html')
+os.makedirs('artifacts', exist_ok=True)
+_reporter = HtmlReport('Hybrid Test Run')
+_reporter.add_meta('base_url', os.environ.get('BASE_URL','https://example.com'))
 
-@pytest.fixture
-def healer(cfg, page):
-    return SelfHealer(page, threshold=cfg.get('ai','heal_threshold'), persist=cfg.get('ai','persist_suggestions'))
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    rep = outcome.get_result()
+    if rep.when == 'call':
+        name = item.nodeid
+        outcome_str = 'passed' if rep.passed else ('skipped' if rep.skipped else 'failed')
+        duration = getattr(rep, 'duration', 0.0) if hasattr(rep, 'duration') else 0.0
+        message = ''
+        if rep.failed:
+            try:
+                message = str(rep.longrepr)
+            except:
+                message = repr(rep.longrepr)
+        screenshot_path = None
+        try:
+            page = item.funcargs.get('page')
+            if page:
+                safe = name.replace('::','__').replace('/','_')
+                screenshot_path = os.path.join('artifacts', f"{safe}.png")
+                page.screenshot(path=screenshot_path, full_page=True)
+        except Exception:
+            screenshot_path = None
+        artifacts = []
+        if screenshot_path:
+            artifacts.append(screenshot_path)
+        _reporter.add_test_result(name=name, outcome=outcome_str, duration=duration, message=message, screenshot_path=screenshot_path, artifacts=artifacts)
+
+def pytest_sessionfinish(session, exitstatus):
+    _reporter.generate_html(REPORT_PATH)
+    print(f'[reporter] HTML report written to {REPORT_PATH}')

@@ -3,3 +3,6 @@ addopts = "-ra -q"
 testpaths = ["tests"]
 xfail_strict = true
 filterwarnings = ["ignore::DeprecationWarning"]
+name = "hybrid-ai-playwright-python"
+version = "0.1.0"
+description = "Hybrid AI powered Playwright-Python testing framework"

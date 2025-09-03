@@ -1,4 +1,4 @@
-import yaml, pathlib, os
+import yaml, pathlib, os, logging
 
 class Config:
     def __init__(self, path: str | None = None):
@@ -13,5 +13,12 @@ class Config:
             else:
                 return default
         return cur
+    
+    def load_config(path='config/config.yaml'):
+        if os.path.exists(path):
+            with open(path) as f:
+                return yaml.safe_load(f)
+        return {}
+  
     @property
     def base_url(self): return self.get('base_url')

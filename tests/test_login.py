@@ -1,5 +1,5 @@
 import pytest
-from pages.login_page import LoginPage
+from pages.ui.login_page import LoginPage
 from util.data_loader import load_data
 from core.ai.assertions import fuzzy_contains
 

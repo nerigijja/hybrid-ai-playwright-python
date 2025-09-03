@@ -61,3 +61,21 @@ This will create:
 - a pytest file under `tests/generated/` ready for refinement.
 
 The generator uses heuristics to pick input selectors and buttons; review and replace `<<AUTO_INPUT>>` tokens with realistic data and add assertions.
+
+
+# Hybrid AI-Powered Playwright-Python Framework
+
+This framework supports:
+- ✅ UI Testing (Playwright)
+- ✅ API Testing (Requests)
+- ✅ DB Testing (SQLite)
+- ✅ AI Features (locators self-healing, assertions, visual testing, test data generation, root cause analysis, UI analyzer)
+- ✅ HTML Reporting
+- ✅ Azure DevOps pipeline
+
+## Installation
+```bash
+python -m venv venv
+source venv/bin/activate   # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+playwright install
