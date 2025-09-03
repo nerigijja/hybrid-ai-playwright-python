@@ -1,0 +1,21 @@
+base_url: "https://example.com"
+browser: "chromium"     # chromium | firefox | webkit
+headless: true
+slowmo_ms: 0
+video: "off"            # off | on
+trace: "off"            # off | on
+ai:
+  self_heal: true
+  heal_threshold: 0.72
+  persist_suggestions: true
+  use_openai: false
+  openai_model: "gpt-4o-mini"
+  max_retries: 1
+assertions:
+  fuzzy_text: true
+  visual:
+    enabled: true
+    diff_cutoff: 8   # smaller is stricter (perceptual hash distance)
+flaky:
+  reruns: 1
+  reruns_delay_sec: 1

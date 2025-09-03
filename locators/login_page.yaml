@@ -1,0 +1,20 @@
+LoginPage:
+  username:
+    css: 'input[name="username"], #username'
+    attrs:
+      data-testid: 'username'
+      placeholder: 'Username'
+  password:
+    css: 'input[name="password"], #password'
+    attrs:
+      data-testid: 'password'
+      placeholder: 'Password'
+  submit:
+    css: 'button[type="submit"], text="Sign in", text="Login"'
+    attrs:
+      role: 'button'
+      data-testid: 'login-submit'
+  message:
+    css: '[data-testid="flash"], .flash, #message'
+    attrs:
+      role: 'status'
